@@ -1,0 +1,540 @@
+{
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "Glog.AI",
+          "organization": "Glog.AI",
+          "fullName": "Glog, Making software more secure",
+          "version": "1.0.0",
+          "semanticVersion": "1.0.0",
+          "informationUri": "https://www.glog.ai",
+          "rules": [
+            {
+              "id": "f0d4de44-746f-36be-ac85-a824264e6d48",
+              "name": "Banned C function detected (strncpy)",
+              "helpUri": "https://www.glog.ai/",
+              "help": {
+                "text": "",
+                "markdown": "This finding is considered a genuine vulnerability because the classification indicates a risk of undefined behavior due to possible overlap between the source and destination memory regions. The analysis detected that the source and destination may refer to overlapping memory, which can cause unpredictable results when using functions like strncpy. Additionally, there is no explicit check to ensure that the source pointer is not null, which could lead to a crash if a null pointer is dereferenced. The destination buffer is a fixed-size array, so buffer overflow is less likely, but the lack of a null-terminator assignment after the copy increases the risk of string-related bugs. The absence of a guard for the length calculation and the use of a non-standard count expression further increase the risk. All these factors contribute to the assessment that this is a genuine and actionable issue.\n\n## In Context Remediation 1\nBefore copying, ensure that the source and destination memory regions do not overlap. Add a check to verify that the source and destination buffers are distinct or that their ranges do not overlap. Also, check that the source pointer is not null before performing the copy. After copying, explicitly null-terminate the destination buffer to prevent unterminated string issues.\n\n```c\nif (pass_start != NULL && (password + sizeof(password) <= pass_start || pass_start + (pass_end - pass_start) <= password)) {\n    strncpy(password, pass_start, pass_end - pass_start);\n    password[pass_end - pass_start < sizeof(password) ? pass_end - pass_start : sizeof(password) - 1] = '\\0';\n}\n```\n\n\n## In Context Remediation 2\nIf overlapping memory regions cannot be ruled out, use `memmove` instead of `strncpy`, as `memmove` safely handles overlapping regions. Also, ensure the source pointer is not null and null-terminate the destination buffer after copying.\n\n```c\nif (pass_start != NULL) {\n    size_t copy_len = pass_end - pass_start;\n    if (copy_len > sizeof(password) - 1) copy_len = sizeof(password) - 1;\n    memmove(password, pass_start, copy_len);\n    password[copy_len] = '\\0';\n}\n```\n\n## References\n- [OWASP C-Based Toolchain Hardening Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/C-Based_Toolchain_Hardening_Cheat_Sheet.html)\n- [CWE-119: Improper Restriction of Operations within the Bounds of a Memory Buffer](https://cwe.mitre.org/data/definitions/119.html)\n- [CWE-120: Buffer Copy without Checking Size of Input ('Classic Buffer Overflow')](https://cwe.mitre.org/data/definitions/120.html)\n- [CWE-787: Out-of-bounds Write](https://cwe.mitre.org/data/definitions/787.html)\n- [CWE-476: NULL Pointer Dereference](https://cwe.mitre.org/data/definitions/476.html)\n- [OWASP Buffer Overflow](https://owasp.org/www-community/vulnerabilities/Buffer_Overflow)\n\n\n___\n"
+              },
+              "properties": {
+                "cwe": [
+                  {
+                    "id": "CWE-119",
+                    "url": "https://cwe.mitre.org/data/definitions/119.html"
+                  },
+                  {
+                    "id": "CWE-120",
+                    "url": "https://cwe.mitre.org/data/definitions/120.html"
+                  },
+                  {
+                    "id": "CWE-787",
+                    "url": "https://cwe.mitre.org/data/definitions/787.html"
+                  },
+                  {
+                    "id": "CWE-476",
+                    "url": "https://cwe.mitre.org/data/definitions/476.html"
+                  }
+                ],
+                "severity": "HIGH",
+                "kind": "FAIL",
+                "tags": [
+                  "CWE-119",
+                  "CWE-120",
+                  "CWE-787",
+                  "CWE-476"
+                ]
+              }
+            },
+            {
+              "id": "f11f18b4-dfac-3939-a514-ca479d8f779c",
+              "name": "Banned C function detected (strncpy)",
+              "helpUri": "https://www.glog.ai/",
+              "help": {
+                "text": "",
+                "markdown": "This finding is considered a genuine vulnerability because the analysis classified it as a risk of undefined behavior due to the possibility that the source pointer may be null, and there are no explicit checks to prevent this. The destination buffer is a fixed-size array, so it is unlikely to be null, but the source pointer could be null at runtime, which would cause undefined behavior if passed to strncpy. There are no guards in the code to ensure the source is valid before copying, and the function verdict confirms this is a genuine issue. The absence of a null-terminator assignment after the copy further increases the risk of improper string handling.\n\n## In Context Remediation 1\nBefore calling the copy operation, ensure that the source pointer is not null. Add an explicit check to prevent undefined behavior if the source is null. For example:\n\n```c\nif (search_start != NULL) {\n    strncpy(search_term, search_start, search_end - search_start);\n    // Optionally, ensure null-termination:\n    search_term[(search_end - search_start) < 512 ? (search_end - search_start) : 511] = '\\0';\n} else {\n    // Handle error: source is null\n}\n```\nThis prevents undefined behavior by ensuring the source pointer is valid before copying. Also, consider always null-terminating the destination buffer after strncpy to avoid unterminated strings.\n\n\n## In Context Remediation 2\nIf the source pointer could be null and you want to provide a default value or handle the error gracefully, you can set the destination buffer to an empty string or a safe default:\n\n```c\nif (search_start != NULL) {\n    strncpy(search_term, search_start, search_end - search_start);\n    search_term[(search_end - search_start) < 512 ? (search_end - search_start) : 511] = '\\0';\n} else {\n    search_term[0] = '\\0'; // Set to empty string if source is null\n}\n```\nThis ensures the destination buffer is always in a valid state, even if the source is null.\n\n## References\n- [OWASP C-Based Toolchain Hardening Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/C-Based_Toolchain_Hardening_Cheat_Sheet.html)\n- [CWE-119: Improper Restriction of Operations within the Bounds of a Memory Buffer](https://cwe.mitre.org/data/definitions/119.html)\n- [CWE-476: NULL Pointer Dereference](https://cwe.mitre.org/data/definitions/476.html)\n- [OWASP Buffer Overflow](https://owasp.org/www-community/vulnerabilities/Buffer_Overflow)\n\n\n___\n"
+              },
+              "properties": {
+                "cwe": [
+                  {
+                    "id": "CWE-119",
+                    "url": "https://cwe.mitre.org/data/definitions/119.html"
+                  },
+                  {
+                    "id": "CWE-476",
+                    "url": "https://cwe.mitre.org/data/definitions/476.html"
+                  }
+                ],
+                "severity": "HIGH",
+                "kind": "FAIL",
+                "tags": [
+                  "CWE-119",
+                  "CWE-476"
+                ]
+              }
+            },
+            {
+              "id": "98106571-e54f-31e8-890f-faedebbed9a4",
+              "name": "Banned C function detected (strncpy)",
+              "helpUri": "https://www.glog.ai/",
+              "help": {
+                "text": "",
+                "markdown": "This finding is considered a genuine vulnerability because the classification indicates a risk of undefined behavior due to possible overlap between the source and destination memory regions. The code copies data from one buffer to another using a length calculated at runtime, but there is evidence that the source and destination may overlap, which is not allowed for the function being used. Additionally, there is no explicit check to ensure that the source pointer is not null, which could also lead to undefined behavior. The destination buffer is a fixed-size array, so buffer overflow is less likely, but the overlap and null pointer risks remain. No explicit null-termination is performed after the copy, which could also lead to string handling issues. These factors together indicate a real risk that should be addressed.\n\n## In Context Remediation 1\nBefore copying, ensure that the source and destination buffers do not overlap. Add a check to verify that the memory regions are distinct. Also, check that the source pointer is not null before performing the copy. For example:\n\n```c\nif (user_start != NULL && (username + sizeof(username) <= user_start || user_start + (user_end - user_start) <= username)) {\n    strncpy(username, user_start, user_end - user_start);\n    username[(user_end - user_start) < sizeof(username) ? (user_end - user_start) : sizeof(username) - 1] = '\\0';\n}\n```\nThis ensures that the copy only occurs if the source is not null and the memory regions do not overlap. It also guarantees null-termination of the destination buffer.\n\n## In Context Remediation 2\nIf it is possible that the source and destination memory regions may overlap, use a function that is safe for overlapping regions, such as `memmove`, instead of `strncpy`. Also, ensure null-termination and check for null pointers:\n\n```c\nif (user_start != NULL) {\n    size_t len = user_end - user_start;\n    if (len > sizeof(username) - 1) len = sizeof(username) - 1;\n    memmove(username, user_start, len);\n    username[len] = '\\0';\n}\n```\nThis approach safely handles overlapping memory and ensures the destination buffer is null-terminated.\n\n## References\n- [OWASP C-Based Toolchain Hardening Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/C-Based_Toolchain_Hardening_Cheat_Sheet.html)\n- [NIST Buffer Overflow](https://csrc.nist.gov/glossary/term/buffer_overflow)\n- [CWE-119: Improper Restriction of Operations within the Bounds of a Memory Buffer](https://cwe.mitre.org/data/definitions/119.html)\n- [CWE-120: Buffer Copy without Checking Size of Input ('Classic Buffer Overflow')](https://cwe.mitre.org/data/definitions/120.html)\n- [CWE-787: Out-of-bounds Write](https://cwe.mitre.org/data/definitions/787.html)\n- [OWASP Buffer Overflow](https://owasp.org/www-community/vulnerabilities/Buffer_Overflow)\n- [OWASP Top Ten](https://owasp.org/www-project-top-ten/)\n\n___\n"
+              },
+              "properties": {
+                "cwe": [
+                  {
+                    "id": "CWE-119",
+                    "url": "https://cwe.mitre.org/data/definitions/119.html"
+                  },
+                  {
+                    "id": "CWE-120",
+                    "url": "https://cwe.mitre.org/data/definitions/120.html"
+                  },
+                  {
+                    "id": "CWE-787",
+                    "url": "https://cwe.mitre.org/data/definitions/787.html"
+                  }
+                ],
+                "severity": "HIGH",
+                "kind": "FAIL",
+                "tags": [
+                  "CWE-119",
+                  "CWE-120",
+                  "CWE-787"
+                ]
+              }
+            },
+            {
+              "id": "bd58afd7-6c6b-3079-b59c-d48a4aa880af",
+              "name": "Banned C function detected (strncpy)",
+              "helpUri": "https://www.glog.ai/",
+              "help": {
+                "text": "",
+                "markdown": "This finding is classified as a genuine vulnerability because the analysis identified a risk of undefined behavior due to possible overlap between the source and destination memory regions in the buffer copy operation. The code copies data from one part of a buffer to another using a function that does not support overlapping memory regions. The source and destination may overlap because the source pointer is derived from a substring search within the same buffer, and there is no explicit check to prevent this. Additionally, there is no explicit null-termination of the destination buffer after the copy, and the source pointer may be null, which could also lead to undefined behavior. The destination is a fixed-size array, so buffer overflow is less likely, but the overlap and null pointer risks make this a high-confidence, actionable issue.\n\n## In Context Remediation 1\nBefore copying, ensure that the source and destination memory regions do not overlap. You can add a check to verify that the source pointer does not point inside the destination buffer, or that the regions are otherwise disjoint. For example:\n\n```c\nif (action_start != NULL && (action + sizeof(action) <= action_start || action_start + (action_end - action_start) <= action)) {\n    strncpy(action, action_start, action_end - action_start);\n    action[action_end - action_start < sizeof(action) ? action_end - action_start : sizeof(action) - 1] = '\\0';\n}\n```\nThis ensures that the copy only occurs if the regions do not overlap and the source pointer is not null. Also, explicitly null-terminate the destination buffer after copying to prevent unterminated strings.\n\n## In Context Remediation 2\nIf overlapping memory regions are possible or cannot be ruled out, use a function that safely handles overlapping regions, such as `memmove`, instead of `strncpy`. For example:\n\n```c\nif (action_start != NULL) {\n    size_t len = action_end - action_start;\n    if (len > sizeof(action) - 1) len = sizeof(action) - 1;\n    memmove(action, action_start, len);\n    action[len] = '\\0';\n}\n```\nThis approach uses `memmove`, which is safe for overlapping memory regions, and ensures the destination buffer is null-terminated.\n\n## References\n- [OWASP C-Based Toolchain Hardening Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/C-Based_Toolchain_Hardening_Cheat_Sheet.html)\n- [NIST Glossary: Buffer Overflow](https://csrc.nist.gov/glossary/term/buffer_overflow)\n- [CWE-119: Improper Restriction of Operations within the Bounds of a Memory Buffer](https://cwe.mitre.org/data/definitions/119.html)\n- [CWE-120: Buffer Copy without Checking Size of Input ('Classic Buffer Overflow')](https://cwe.mitre.org/data/definitions/120.html)\n- [CWE-787: Out-of-bounds Write](https://cwe.mitre.org/data/definitions/787.html)\n- [OWASP Buffer Overflow](https://owasp.org/www-community/vulnerabilities/Buffer_Overflow)\n\n___\n"
+              },
+              "properties": {
+                "cwe": [
+                  {
+                    "id": "CWE-119",
+                    "url": "https://cwe.mitre.org/data/definitions/119.html"
+                  },
+                  {
+                    "id": "CWE-120",
+                    "url": "https://cwe.mitre.org/data/definitions/120.html"
+                  },
+                  {
+                    "id": "CWE-787",
+                    "url": "https://cwe.mitre.org/data/definitions/787.html"
+                  }
+                ],
+                "severity": "HIGH",
+                "kind": "FAIL",
+                "tags": [
+                  "CWE-119",
+                  "CWE-120",
+                  "CWE-787"
+                ]
+              }
+            }
+          ],
+          "language": "en-US",
+          "contents": [
+            "localizedData",
+            "nonLocalizedData"
+          ],
+          "isComprehensive": false
+        }
+      },
+      "language": "en-US",
+      "results": [
+        {
+          "ruleId": "f0d4de44-746f-36be-ac85-a824264e6d48",
+          "kind": "fail",
+          "level": "error",
+          "message": {
+            "text": "Banned C function detected (strncpy)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "main.c"
+                },
+                "region": {
+                  "startLine": 73,
+                  "startColumn": 12,
+                  "endLine": 73,
+                  "endColumn": 64,
+                  "charOffset": 2211,
+                  "charLength": 52,
+                  "snippet": {
+                    "text": "strncpy(password, pass_start, pass_end - pass_start)",
+                    "rendered": {
+                      "text": "strncpy(password, pass_start, pass_end - pass_start)",
+                      "markdown": "`strncpy(password, pass_start, pass_end - pass_start)`"
+                    }
+                  },
+                  "sourceLanguage": "c"
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "glog-pfp-ruleFileLineCode/v1": "f173a39952ea230d2a8adb5c0ae158a15b828c2396b93238ae83e52f5ff20968",
+            "glog-pfp-ruleFileCode/v1": "fcb79727fc7144283e5fdc3fb1888d67b01ea902eea7c844379f689012822dd4"
+          },
+          "fingerprints": {
+            "glog-fp-ruleFileCode/v1": "fcb79727fc7144283e5fdc3fb1888d67b01ea902eea7c844379f689012822dd4"
+          },
+          "fixes": [
+            {
+              "description": {
+                "text": "strncpy is dangerous, as if the source contains 'n' or more characters, it will not null terminate the destination."
+              },
+              "artifactChanges": [
+                {
+                  "artifactLocation": {
+                    "uri": "main.c"
+                  },
+                  "replacements": [
+                    {
+                      "deletedRegion": {
+                        "charOffset": 2211,
+                        "charLength": 52
+                      },
+                      "insertedContent": {
+                        "text": "strcpy_s(password,  pass_end - pass_start,  pass_start)"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "description": {
+                "text": "strncpy is dangerous, as if the source contains 'n' or more characters, it will not null terminate the destination."
+              },
+              "artifactChanges": [
+                {
+                  "artifactLocation": {
+                    "uri": "main.c"
+                  },
+                  "replacements": [
+                    {
+                      "deletedRegion": {
+                        "charOffset": 2211,
+                        "charLength": 52
+                      },
+                      "insertedContent": {
+                        "text": "strlcpy(password,  pass_start,  pass_end - pass_start)"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "DevSkimSeverity": "Important",
+            "DevSkimConfidence": "High",
+            "tags": [
+              "API.DangerousAPI.BannedFunction"
+            ]
+          }
+        },
+        {
+          "ruleId": "f11f18b4-dfac-3939-a514-ca479d8f779c",
+          "kind": "fail",
+          "level": "error",
+          "message": {
+            "text": "Banned C function detected (strncpy)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "main.c"
+                },
+                "region": {
+                  "startLine": 85,
+                  "startColumn": 12,
+                  "endLine": 85,
+                  "endColumn": 73,
+                  "charOffset": 2594,
+                  "charLength": 61,
+                  "snippet": {
+                    "text": "strncpy(search_term, search_start, search_end - search_start)",
+                    "rendered": {
+                      "text": "strncpy(search_term, search_start, search_end - search_start)",
+                      "markdown": "`strncpy(search_term, search_start, search_end - search_start)`"
+                    }
+                  },
+                  "sourceLanguage": "c"
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "glog-pfp-ruleFileLineCode/v1": "5096efa345d997ee85e9559c02508c6a1ccc172de4c0169a5d01bd61478aec14",
+            "glog-pfp-ruleFileCode/v1": "9bb2675b956712bfe208c42b528969f6855a8bd627cc17a053fcc64262b8c8c7"
+          },
+          "fingerprints": {
+            "glog-fp-ruleFileCode/v1": "9bb2675b956712bfe208c42b528969f6855a8bd627cc17a053fcc64262b8c8c7"
+          },
+          "fixes": [
+            {
+              "description": {
+                "text": "strncpy is dangerous, as if the source contains 'n' or more characters, it will not null terminate the destination."
+              },
+              "artifactChanges": [
+                {
+                  "artifactLocation": {
+                    "uri": "main.c"
+                  },
+                  "replacements": [
+                    {
+                      "deletedRegion": {
+                        "charOffset": 2594,
+                        "charLength": 61
+                      },
+                      "insertedContent": {
+                        "text": "strcpy_s(search_term,  search_end - search_start,  search_start)"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "description": {
+                "text": "strncpy is dangerous, as if the source contains 'n' or more characters, it will not null terminate the destination."
+              },
+              "artifactChanges": [
+                {
+                  "artifactLocation": {
+                    "uri": "main.c"
+                  },
+                  "replacements": [
+                    {
+                      "deletedRegion": {
+                        "charOffset": 2594,
+                        "charLength": 61
+                      },
+                      "insertedContent": {
+                        "text": "strlcpy(search_term,  search_start,  search_end - search_start)"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "DevSkimSeverity": "Important",
+            "DevSkimConfidence": "High",
+            "tags": [
+              "API.DangerousAPI.BannedFunction"
+            ]
+          }
+        },
+        {
+          "ruleId": "98106571-e54f-31e8-890f-faedebbed9a4",
+          "kind": "fail",
+          "level": "error",
+          "message": {
+            "text": "Banned C function detected (strncpy)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "main.c"
+                },
+                "region": {
+                  "startLine": 61,
+                  "startColumn": 12,
+                  "endLine": 61,
+                  "endColumn": 64,
+                  "charOffset": 1834,
+                  "charLength": 52,
+                  "snippet": {
+                    "text": "strncpy(username, user_start, user_end - user_start)",
+                    "rendered": {
+                      "text": "strncpy(username, user_start, user_end - user_start)",
+                      "markdown": "`strncpy(username, user_start, user_end - user_start)`"
+                    }
+                  },
+                  "sourceLanguage": "c"
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "glog-pfp-ruleFileLineCode/v1": "300bdc65807467fb90609960dfe426e173362726997d27b0c7b730297f8467d6",
+            "glog-pfp-ruleFileCode/v1": "d121e2446efebed3517080a156f05b146d73f006e01a1b241b734b5d8e2b70a3"
+          },
+          "fingerprints": {
+            "glog-fp-ruleFileCode/v1": "d121e2446efebed3517080a156f05b146d73f006e01a1b241b734b5d8e2b70a3"
+          },
+          "fixes": [
+            {
+              "description": {
+                "text": "strncpy is dangerous, as if the source contains 'n' or more characters, it will not null terminate the destination."
+              },
+              "artifactChanges": [
+                {
+                  "artifactLocation": {
+                    "uri": "main.c"
+                  },
+                  "replacements": [
+                    {
+                      "deletedRegion": {
+                        "charOffset": 1834,
+                        "charLength": 52
+                      },
+                      "insertedContent": {
+                        "text": "strcpy_s(username,  user_end - user_start,  user_start)"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "description": {
+                "text": "strncpy is dangerous, as if the source contains 'n' or more characters, it will not null terminate the destination."
+              },
+              "artifactChanges": [
+                {
+                  "artifactLocation": {
+                    "uri": "main.c"
+                  },
+                  "replacements": [
+                    {
+                      "deletedRegion": {
+                        "charOffset": 1834,
+                        "charLength": 52
+                      },
+                      "insertedContent": {
+                        "text": "strlcpy(username,  user_start,  user_end - user_start)"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "DevSkimSeverity": "Important",
+            "DevSkimConfidence": "High",
+            "tags": [
+              "API.DangerousAPI.BannedFunction"
+            ]
+          }
+        },
+        {
+          "ruleId": "bd58afd7-6c6b-3079-b59c-d48a4aa880af",
+          "kind": "fail",
+          "level": "error",
+          "message": {
+            "text": "Banned C function detected (strncpy)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "main.c"
+                },
+                "region": {
+                  "startLine": 49,
+                  "startColumn": 12,
+                  "endLine": 49,
+                  "endColumn": 68,
+                  "charOffset": 1453,
+                  "charLength": 56,
+                  "snippet": {
+                    "text": "strncpy(action, action_start, action_end - action_start)",
+                    "rendered": {
+                      "text": "strncpy(action, action_start, action_end - action_start)",
+                      "markdown": "`strncpy(action, action_start, action_end - action_start)`"
+                    }
+                  },
+                  "sourceLanguage": "c"
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "glog-pfp-ruleFileLineCode/v1": "6913d1e69ba29a608d40b9079064ea2363eb2bf60a2ecf7d2756f477a714739f",
+            "glog-pfp-ruleFileCode/v1": "4312263d028211cb45a5a3acc07626c95ad671dc8b9e9d784456167bb9aaf8c9"
+          },
+          "fingerprints": {
+            "glog-fp-ruleFileCode/v1": "4312263d028211cb45a5a3acc07626c95ad671dc8b9e9d784456167bb9aaf8c9"
+          },
+          "fixes": [
+            {
+              "description": {
+                "text": "strncpy is dangerous, as if the source contains 'n' or more characters, it will not null terminate the destination."
+              },
+              "artifactChanges": [
+                {
+                  "artifactLocation": {
+                    "uri": "main.c"
+                  },
+                  "replacements": [
+                    {
+                      "deletedRegion": {
+                        "charOffset": 1453,
+                        "charLength": 56
+                      },
+                      "insertedContent": {
+                        "text": "strcpy_s(action,  action_end - action_start,  action_start)"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "description": {
+                "text": "strncpy is dangerous, as if the source contains 'n' or more characters, it will not null terminate the destination."
+              },
+              "artifactChanges": [
+                {
+                  "artifactLocation": {
+                    "uri": "main.c"
+                  },
+                  "replacements": [
+                    {
+                      "deletedRegion": {
+                        "charOffset": 1453,
+                        "charLength": 56
+                      },
+                      "insertedContent": {
+                        "text": "strlcpy(action,  action_start,  action_end - action_start)"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "DevSkimSeverity": "Important",
+            "DevSkimConfidence": "High",
+            "tags": [
+              "API.DangerousAPI.BannedFunction"
+            ]
+          }
+        }
+      ],
+      "newlineSequences": [
+        "\r\n",
+        "\n"
+      ]
+    }
+  ]
+}
